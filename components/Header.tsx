@@ -1,18 +1,49 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Search, LayoutDashboard, LogIn, LogOut, Settings } from "lucide-react";
-import Image from "next/image";
+import { useState, useRef, useEffect, Suspense } from "react";
+import { Search, LogIn, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+
+function SearchInput() {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    const params = new URLSearchParams(searchParams.toString());
+    if (val) {
+      params.set("q", val);
+    } else {
+      params.delete("q");
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  return (
+    <div className="relative w-full">
+      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+        <Search className="h-5 w-5 text-slate-400" aria-hidden="true" />
+      </div>
+      <input
+        id="search"
+        className="block w-full rounded-full border-0 bg-slate-50 py-2.5 pl-11 pr-4 text-slate-900 ring-1 ring-inset ring-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+        placeholder="Search projects..."
+        type="search"
+        name="search"
+        defaultValue={searchParams.get("q") || ""}
+        onChange={handleSearch}
+      />
+    </div>
+  );
+}
 
 export function Header() {
   const { data: user } = useAuth();
   const supabase = createClient();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -31,18 +62,7 @@ export function Header() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.refresh(); // Or manually invalidate React Query state
-  };
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    const params = new URLSearchParams(searchParams.toString());
-    if (val) {
-      params.set("q", val);
-    } else {
-      params.delete("q");
-    }
-    router.replace(`${pathname}?${params.toString()}`);
+    router.refresh();
   };
 
   return (
@@ -51,20 +71,21 @@ export function Header() {
         <label htmlFor="search" className="sr-only">
           Search
         </label>
-        <div className="relative w-full">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-            <Search className="h-5 w-5 text-slate-400" aria-hidden="true" />
+        <Suspense fallback={
+          <div className="relative w-full">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+              <Search className="h-5 w-5 text-slate-400" aria-hidden="true" />
+            </div>
+            <input
+              className="block w-full rounded-full border-0 bg-slate-50 py-2.5 pl-11 pr-4 text-slate-900 ring-1 ring-inset ring-slate-100 placeholder:text-slate-400 sm:text-sm sm:leading-6"
+              placeholder="Search projects..."
+              type="search"
+              disabled
+            />
           </div>
-          <input
-            id="search"
-            className="block w-full rounded-full border-0 bg-slate-50 py-2.5 pl-11 pr-4 text-slate-900 ring-1 ring-inset ring-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-            placeholder="Search projects..."
-            type="search"
-            name="search"
-            defaultValue={searchParams.get("q") || ""}
-            onChange={handleSearch}
-          />
-        </div>
+        }>
+          <SearchInput />
+        </Suspense>
       </div>
 
       {/* Right Section: Profile & Actions */}
