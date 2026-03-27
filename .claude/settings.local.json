@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/esun/WebProject/tmii-sponsorship-tracker -maxdepth 3 -name prisma* -o -name schema*)",
+      "Bash(ls \"c:/Users/esun/WebProject/tmii-sponsorship-tracker/app/\\(main\\)/\")",
+      "Bash(npm install:*)",
+      "Bash(node -e \"require\\(''exceljs''\\); console.log\\(''ok''\\)\")",
+      "Bash(npx tsc:*)",
+      "Bash(node -e \"const ExcelJS = require\\(''exceljs''\\); console.log\\(ExcelJS.VERSION || require\\(''./node_modules/exceljs/package.json''\\).version\\)\")",
+      "Bash(find /c/Users/esun/WebProject/tmii-sponsorship-tracker -name *.sql -o -name migrations -o -name *.supabase.json)",
+      "Bash(find /c/Users/esun/WebProject/tmii-sponsorship-tracker/app /c/Users/esun/WebProject/tmii-sponsorship-tracker/components /c/Users/esun/WebProject/tmii-sponsorship-tracker/hooks /c/Users/esun/WebProject/tmii-sponsorship-tracker/services /c/Users/esun/WebProject/tmii-sponsorship-tracker/types /c/Users/esun/WebProject/tmii-sponsorship-tracker/utils -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\))",
+      "Bash(head -50 /c/Users/esun/WebProject/tmii-sponsorship-tracker/app/api/projects/[id]/route.ts)",
+      "Bash(grep -r process.env /c/Users/esun/WebProject/tmii-sponsorship-tracker/app /c/Users/esun/WebProject/tmii-sponsorship-tracker/utils --include=*.ts --include=*.tsx)",
+      "Bash(cat /c/Users/esun/WebProject/tmii-sponsorship-tracker/app/api/projects/[id]/sales/route.ts)",
+      "Bash(cat /c/Users/esun/WebProject/tmii-sponsorship-tracker/app/api/cost-ratio/[id]/route.ts)",
+      "Bash(grep -r \"secret\\\\|password\\\\|token\\\\|key\" /c/Users/esun/WebProject/tmii-sponsorship-tracker/app /c/Users/esun/WebProject/tmii-sponsorship-tracker/utils /c/Users/esun/WebProject/tmii-sponsorship-tracker/components /c/Users/esun/WebProject/tmii-sponsorship-tracker/hooks --include=*.ts --include=*.tsx --ignore-case)",
+      "Bash(grep -r \"redirect\\\\|protectedRoute\\\\|unauthorized\" /c/Users/esun/WebProject/tmii-sponsorship-tracker/app --include=*.ts --include=*.tsx)",
+      "Bash(cat /c/Users/esun/WebProject/tmii-sponsorship-tracker/app/api/projects/[id]/todos/route.ts)",
+      "Bash(find c:/Users/esun/WebProject/tmii-sponsorship-tracker/node_modules/@supabase/ssr -name proxy*)"
+    ]
+  }
+}
