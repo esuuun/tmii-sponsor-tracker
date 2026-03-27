@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 
-export async function GET(request: Request, context: { params: { id: string } }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
@@ -22,7 +22,7 @@ export async function GET(request: Request, context: { params: { id: string } })
   return NextResponse.json({ timeline: data });
 }
 
-export async function POST(request: Request, context: { params: { id: string } }) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
