@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ProjectCard, NewProjectCard } from "@/components/ProjectCard";
 import { NewProjectModal } from "@/components/NewProjectModal";
@@ -8,7 +8,7 @@ import { useProjects, useCreateProject } from "@/hooks/useProjects";
 import { Loader2 } from "lucide-react";
 import { ErrorState } from "@/components/ErrorState";
 
-export default function ProjectsOverview() {
+function ProjectsContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { data: projects = [], isLoading, isError, refetch } = useProjects();
   const { mutate: createProject, isPending } = useCreateProject();
@@ -65,11 +65,19 @@ export default function ProjectsOverview() {
         </div>
       )}
 
-      <NewProjectModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <NewProjectModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         onSave={handleCreateProject}
       />
     </div>
+  );
+}
+
+export default function ProjectsOverview() {
+  return (
+    <Suspense>
+      <ProjectsContent />
+    </Suspense>
   );
 }
