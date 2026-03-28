@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Project, ProjectTodo, ProjectTimeline, ProjectSales } from "@/types/database";
+import { toast } from "sonner";
 
 // --- Project Details ---
 export const useProjectDetails = (projectId: string) => {
@@ -38,6 +39,9 @@ export const useTodoMutations = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ["todos", projectId] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
+    onError: (error: Error) => {
+      toast.error(`Failed to add task: ${error.message}`);
+    },
   });
 
   const updateTodo = useMutation({
@@ -46,24 +50,19 @@ export const useTodoMutations = (projectId: string) => {
       return res.data;
     },
     onMutate: async (updatedTodo) => {
-      // Cancel any outgoing refetches so they don't overwrite our optimistic update
       await queryClient.cancelQueries({ queryKey: ["todos", projectId] });
-      // Snapshot the previous value
       const previousTodos = queryClient.getQueryData<ProjectTodo[]>(["todos", projectId]);
-      // Optimistically update to the new value
-      queryClient.setQueryData<ProjectTodo[]>(["todos", projectId], (old) => 
+      queryClient.setQueryData<ProjectTodo[]>(["todos", projectId], (old) =>
         old?.map(todo => todo.id === updatedTodo.id ? { ...todo, ...updatedTodo } : todo)
       );
-      // Return a context object with the snapshotted value
       return { previousTodos };
     },
-    // If the mutation fails, use the context returned from onMutate to roll back
-    onError: (err, newTodo, context) => {
+    onError: (error: Error, newTodo, context) => {
       if (context?.previousTodos) {
         queryClient.setQueryData(["todos", projectId], context.previousTodos);
       }
+      toast.error(`Failed to update task: ${error.message}`);
     },
-    // Always refetch after error or success to synchronize accurately with the server
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["todos", projectId] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
@@ -78,17 +77,16 @@ export const useTodoMutations = (projectId: string) => {
     onMutate: async (deletedId) => {
       await queryClient.cancelQueries({ queryKey: ["todos", projectId] });
       const previousTodos = queryClient.getQueryData<ProjectTodo[]>(["todos", projectId]);
-      
-      queryClient.setQueryData<ProjectTodo[]>(["todos", projectId], (old) => 
+      queryClient.setQueryData<ProjectTodo[]>(["todos", projectId], (old) =>
         old?.filter(todo => todo.id !== deletedId)
       );
-      
       return { previousTodos };
     },
-    onError: (err, id, context) => {
+    onError: (error: Error, id, context) => {
       if (context?.previousTodos) {
         queryClient.setQueryData(["todos", projectId], context.previousTodos);
       }
+      toast.error(`Failed to delete task: ${error.message}`);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["todos", projectId] });
@@ -104,24 +102,22 @@ export const useTodoMutations = (projectId: string) => {
     onMutate: async (orderedList) => {
       await queryClient.cancelQueries({ queryKey: ["todos", projectId] });
       const previousTodos = queryClient.getQueryData<ProjectTodo[]>(["todos", projectId]);
-      
-      // Optimistically apply sorting visually
       queryClient.setQueryData<ProjectTodo[]>(["todos", projectId], (old) => {
         if (!old) return old;
         const newArray = [...old];
         orderedList.forEach(orderItem => {
-           const idx = newArray.findIndex(t => t.id === orderItem.id);
-           if (idx !== -1) newArray[idx].order_index = orderItem.order_index;
+          const idx = newArray.findIndex(t => t.id === orderItem.id);
+          if (idx !== -1) newArray[idx].order_index = orderItem.order_index;
         });
         return newArray.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
       });
-
       return { previousTodos };
     },
-    onError: (err, variables, context) => {
+    onError: (error: Error, variables, context) => {
       if (context?.previousTodos) {
         queryClient.setQueryData(["todos", projectId], context.previousTodos);
       }
+      toast.error(`Failed to reorder tasks: ${error.message}`);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["todos", projectId] });
@@ -160,10 +156,9 @@ export const useSalesMutations = (projectId: string, year?: number) => {
       return res.data;
     },
     onSuccess: invalidate,
-    onError: (error: any) => {
-      console.error("Failed to create sales item:", error);
-      alert("Failed to save data. Please ensure the 'year' column has been added to the 'project_sales' table in Supabase.");
-    }
+    onError: (error: Error) => {
+      toast.error(`Failed to save data: ${error.message}`);
+    },
   });
 
   const updateSalesAmount = useMutation({
@@ -172,10 +167,9 @@ export const useSalesMutations = (projectId: string, year?: number) => {
       return res.data;
     },
     onSuccess: invalidate,
-    onError: (error: any) => {
-      console.error("Failed to update sales amount:", error);
-      alert("Failed to save data. Please ensure the 'year' column has been added to the 'project_sales' table in Supabase.");
-    }
+    onError: (error: Error) => {
+      toast.error(`Failed to update sales data: ${error.message}`);
+    },
   });
 
   const renameSalesItem = useMutation({
@@ -184,6 +178,9 @@ export const useSalesMutations = (projectId: string, year?: number) => {
       return res.data;
     },
     onSuccess: invalidate,
+    onError: (error: Error) => {
+      toast.error(`Failed to rename item: ${error.message}`);
+    },
   });
 
   const deleteSalesItem = useMutation({
@@ -192,6 +189,9 @@ export const useSalesMutations = (projectId: string, year?: number) => {
       return res.data;
     },
     onSuccess: invalidate,
+    onError: (error: Error) => {
+      toast.error(`Failed to delete item: ${error.message}`);
+    },
   });
 
   const deleteSingleSale = useMutation({
@@ -200,6 +200,9 @@ export const useSalesMutations = (projectId: string, year?: number) => {
       return res.data;
     },
     onSuccess: invalidate,
+    onError: (error: Error) => {
+      toast.error(`Failed to delete sale: ${error.message}`);
+    },
   });
 
   return { createSalesItem, updateSalesAmount, renameSalesItem, deleteSalesItem, deleteSingleSale };
@@ -225,7 +228,13 @@ export const useTimelineMutations = (projectId: string) => {
       const res = await api.post(`/projects/${projectId}/timeline`, data);
       return res.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["timelines", projectId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["timelines", projectId] });
+      toast.success("Timeline item added.");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to add timeline item: ${error.message}`);
+    },
   });
 
   const updateTimeline = useMutation({
@@ -233,7 +242,13 @@ export const useTimelineMutations = (projectId: string) => {
       const res = await api.patch(`/projects/${projectId}/timeline`, data);
       return res.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["timelines", projectId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["timelines", projectId] });
+      toast.success("Timeline item updated.");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update timeline item: ${error.message}`);
+    },
   });
 
   const deleteTimeline = useMutation({
@@ -241,7 +256,13 @@ export const useTimelineMutations = (projectId: string) => {
       const res = await api.delete(`/projects/${projectId}/timeline?id=${id}`);
       return res.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["timelines", projectId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["timelines", projectId] });
+      toast.success("Timeline item deleted.");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete timeline item: ${error.message}`);
+    },
   });
 
   return { createTimeline, updateTimeline, deleteTimeline };

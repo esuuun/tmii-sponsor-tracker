@@ -45,6 +45,8 @@ export async function GET(
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  try {
+
   const { searchParams } = new URL(request.url);
   const year = parseInt(searchParams.get("year") || String(new Date().getFullYear()));
 
@@ -55,9 +57,9 @@ export async function GET(
     supabase.from("project_sales").select("*").eq("project_id", projectId).eq("year", year),
   ]);
 
-  if (projectRes.error) {
-    return NextResponse.json({ error: projectRes.error.message }, { status: 500 });
-  }
+  if (projectRes.error) throw new Error(projectRes.error.message);
+  if (allSalesRes.error) throw new Error(allSalesRes.error.message);
+  if (yearSalesRes.error) throw new Error(yearSalesRes.error.message);
 
   const projectName = projectRes.data?.name ?? "Project";
 
@@ -228,4 +230,7 @@ export async function GET(
       "Content-Disposition": `attachment; filename="Sales-Matrix-${safeProjectName}-${year}.xlsx"`,
     },
   });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message ?? "Export failed." }, { status: 500 });
+  }
 }

@@ -360,6 +360,7 @@ export async function GET(request: Request) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  try {
   const { searchParams } = new URL(request.url);
   const year = parseInt(searchParams.get("year") || String(new Date().getFullYear()));
 
@@ -368,9 +369,7 @@ export async function GET(request: Request) {
     .select("*")
     .eq("year", year);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  if (error) throw new Error(error.message);
 
   // Build dataMap
   const dataMap: Record<number, MonthData> = {};
@@ -396,4 +395,7 @@ export async function GET(request: Request) {
       "Content-Disposition": `attachment; filename="Target-Revenue-${year}.xlsx"`,
     },
   });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message ?? "Export failed." }, { status: 500 });
+  }
 }

@@ -75,6 +75,7 @@ export async function GET(
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  try {
   const { searchParams } = new URL(request.url);
   const year = parseInt(searchParams.get("year") || String(new Date().getFullYear()));
 
@@ -88,8 +89,8 @@ export async function GET(
       .order("order_index", { ascending: true }),
   ]);
 
-  if (projectRes.error)
-    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  if (projectRes.error) throw new Error(projectRes.error.message);
+  if (itemsRes.error) throw new Error(itemsRes.error.message);
 
   const projectName: string = projectRes.data.name;
   const items: any[] = itemsRes.data ?? [];
@@ -333,4 +334,7 @@ export async function GET(
       "Content-Disposition": `attachment; filename="Cost-Ratio-${safeName}-${year}.xlsx"`,
     },
   });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message ?? "Export failed." }, { status: 500 });
+  }
 }

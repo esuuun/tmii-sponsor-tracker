@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { RevenueMonthly } from "@/types/database";
+import { toast } from "sonner";
 
 export const useRevenueData = (year: number) => {
   return useQuery({
@@ -31,6 +32,9 @@ export const useUpsertRevenue = (year: number) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["revenue", year] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to save revenue data: ${error.message}`);
     },
   });
 };

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 
+const ALLOWED_PATCH_FIELDS = ["name", "description", "status"];
+
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
@@ -17,7 +19,10 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     .eq("id", params.id)
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 404 });
+  if (error) {
+    const status = error.code === "PGRST116" ? 404 : 500;
+    return NextResponse.json({ error: error.message }, { status });
+  }
 
   return NextResponse.json({ project: data });
 }
@@ -33,10 +38,20 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
   try {
     const body = await request.json();
-    
+
+    // Only allow whitelisted fields
+    const updates: Record<string, unknown> = {};
+    for (const field of ALLOWED_PATCH_FIELDS) {
+      if (field in body) updates[field] = body[field];
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: "No valid fields to update." }, { status: 400 });
+    }
+
     const { data, error } = await supabase
       .from("projects")
-      .update(body)
+      .update(updates)
       .eq("id", params.id)
       .select()
       .single();
@@ -44,7 +59,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (error) throw error;
     return NextResponse.json({ project: data });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -62,7 +77,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     .delete()
     .eq("id", params.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ success: true });
 }

@@ -9,6 +9,7 @@ import {
   Download,
 } from "lucide-react";
 import { useRevenueData, useUpsertRevenue } from "@/hooks/useRevenue";
+import { toast } from "sonner";
 import { RevenueMonthly } from "@/types/database";
 import { ErrorState } from "@/components/ErrorState";
 
@@ -348,7 +349,10 @@ export default function TargetRevenuePage() {
     setIsExporting(true);
     try {
       const res = await fetch(`/api/revenue/export?year=${year}`);
-      if (!res.ok) throw new Error("Export failed");
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Export failed.");
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -358,6 +362,8 @@ export default function TargetRevenuePage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Export failed.");
     } finally {
       setIsExporting(false);
     }

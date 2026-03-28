@@ -20,13 +20,12 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     .order("created_at", { ascending: true });
 
   if (yearParam) {
-    // Using simple eq with the parameter directly to be robust against string/number types
     query = query.eq("year", yearParam);
   }
 
   const { data, error } = await query;
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ sales: data });
 }
@@ -43,30 +42,30 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   try {
     const body = await request.json();
     const { item_name, month, sales_amount, year } = body;
-    const salesYear = year || new Date().getFullYear();
 
-    console.log("POST /sales:", { item_name, month, sales_amount, year: salesYear });
+    if (!item_name || typeof item_name !== "string" || item_name.trim() === "") {
+      return NextResponse.json({ error: "item_name is required." }, { status: 400 });
+    }
+
+    const salesYear = year || new Date().getFullYear();
 
     const { data, error } = await supabase
       .from("project_sales")
-      .insert([{ 
-        project_id: params.id, 
-        item_name, 
+      .insert([{
+        project_id: params.id,
+        item_name: item_name.trim(),
         month: month || "January",
         year: salesYear,
-        sales_amount: sales_amount || 0 
+        sales_amount: sales_amount || 0,
       }])
       .select()
       .single();
 
-    if (error) {
-      console.error("Supabase insert error:", error);
-      throw error;
-    }
-    
+    if (error) throw error;
+
     return NextResponse.json({ sale: data }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -83,11 +82,14 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const body = await request.json();
     const { id, item_name, month, sales_amount, year, old_item_name, new_item_name } = body;
 
-    // Bulk Rename mode across all localized matrix rows
+    // Bulk rename mode
     if (old_item_name && new_item_name) {
+      if (typeof new_item_name !== "string" || new_item_name.trim() === "") {
+        return NextResponse.json({ error: "new_item_name cannot be empty." }, { status: 400 });
+      }
       const { error } = await supabase
         .from("project_sales")
-        .update({ item_name: new_item_name })
+        .update({ item_name: new_item_name.trim() })
         .eq("project_id", params.id)
         .eq("item_name", old_item_name);
 
@@ -95,9 +97,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       return NextResponse.json({ success: true });
     }
 
-    console.log("PATCH /sales:", { id, item_name, month, sales_amount, year });
+    // Single cell update
+    if (!id) return NextResponse.json({ error: "id is required." }, { status: 400 });
 
-    // Default specific single-cell update mode
     const { data, error } = await supabase
       .from("project_sales")
       .update({ item_name, month, sales_amount, ...(year !== undefined ? { year } : {}) })
@@ -105,13 +107,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       .select()
       .single();
 
-    if (error) {
-      console.error("Supabase update error:", error);
-      throw error;
-    }
+    if (error) throw error;
     return NextResponse.json({ sale: data });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -128,16 +127,11 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     const url = new URL(request.url);
     const itemName = url.searchParams.get("item_name");
     const id = url.searchParams.get("id");
-    
+
     if (id) {
-      // Delete specific single record
-      const { error } = await supabase
-        .from("project_sales")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("project_sales").delete().eq("id", id);
       if (error) throw error;
     } else if (itemName) {
-      // Delete all records with this item name for this project
       const { error } = await supabase
         .from("project_sales")
         .delete()
@@ -145,11 +139,11 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
         .eq("item_name", itemName);
       if (error) throw error;
     } else {
-      throw new Error("Missing id or item_name for deletion.");
+      return NextResponse.json({ error: "id or item_name is required." }, { status: 400 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

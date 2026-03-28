@@ -17,7 +17,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     .eq("project_id", params.id)
     .order("start_date", { ascending: true });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ timeline: data });
 }
@@ -35,23 +35,29 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const body = await request.json();
     const { task_detail, start_date, end_date, category } = body;
 
+    if (!task_detail || typeof task_detail !== "string" || task_detail.trim() === "") {
+      return NextResponse.json({ error: "task_detail is required." }, { status: 400 });
+    }
+    if (!start_date) return NextResponse.json({ error: "start_date is required." }, { status: 400 });
+    if (!end_date) return NextResponse.json({ error: "end_date is required." }, { status: 400 });
+
     const { data, error } = await supabase
       .from("project_timelines")
-      .insert([{  
-        project_id: params.id, 
-        task_detail,
-        start_date, 
-        end_date, 
-        category
+      .insert([{
+        project_id: params.id,
+        task_detail: task_detail.trim(),
+        start_date,
+        end_date,
+        category,
       }])
       .select()
       .single();
 
     if (error) throw error;
-    
+
     return NextResponse.json({ element: data }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -66,6 +72,8 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { id, task_detail, start_date, end_date, category } = body;
 
+    if (!id) return NextResponse.json({ error: "id is required." }, { status: 400 });
+
     const { data, error } = await supabase
       .from("project_timelines")
       .update({ task_detail, start_date, end_date, category })
@@ -74,10 +82,10 @@ export async function PATCH(request: Request) {
       .single();
 
     if (error) throw error;
-    
+
     return NextResponse.json({ element: data });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -91,7 +99,7 @@ export async function DELETE(request: Request) {
   try {
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
-    if (!id) throw new Error("Missing ID parameter");
+    if (!id) return NextResponse.json({ error: "id is required." }, { status: 400 });
 
     const { error } = await supabase
       .from("project_timelines")
@@ -102,6 +110,6 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

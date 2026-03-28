@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Project } from "@/types/database";
+import { toast } from "sonner";
 
 export const useProjects = () => {
   return useQuery({
@@ -22,6 +23,10 @@ export const useCreateProject = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("Project created successfully.");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to create project: ${error.message}`);
     },
   });
 };
@@ -37,6 +42,10 @@ export const useUpdateProject = () => {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["project", variables.id] });
+      toast.success("Project updated.");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update project: ${error.message}`);
     },
   });
 };
@@ -52,6 +61,10 @@ export const useDeleteProject = () => {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["project", variables] });
+      toast.success("Project deleted.");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete project: ${error.message}`);
     },
   });
 };

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Plus, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useUpdateProject, useDeleteProject } from "@/hooks/useProjects";
+import { toast } from "sonner";
 import { EditProjectModal } from "./EditProjectModal";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 
@@ -38,13 +39,15 @@ export function ProjectCard({ id, name, description, progress_percentage, status
 
   const handleEdit = (data: { name: string; description: string; status: string }) => {
     updateProject({ id, ...data }, {
-      onSuccess: () => setIsEditModalOpen(false)
+      onSuccess: () => setIsEditModalOpen(false),
+      onError: (error: Error) => toast.error(`Failed to update project: ${error.message}`),
     });
   };
 
   const handleDelete = () => {
     deleteProject(id, {
-      onSuccess: () => setIsDeleteModalOpen(false)
+      onSuccess: () => setIsDeleteModalOpen(false),
+      onError: (error: Error) => toast.error(`Failed to delete project: ${error.message}`),
     });
   };
 
