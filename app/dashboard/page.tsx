@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ProjectCard, NewProjectCard } from "@/components/ProjectCard";
 import { Project } from "@/types/database";
@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { ErrorState } from "@/components/ErrorState";
 
-export default function DashboardHome() {
+function DashboardContent() {
   const { data: user } = useAuth();
   const isAdmin = !!user;
 
@@ -91,5 +91,13 @@ export default function DashboardHome() {
         onSave={handleCreateProject}
       />
     </div>
+  );
+}
+
+export default function DashboardHome() {
+  return (
+    <Suspense>
+      <DashboardContent />
+    </Suspense>
   );
 }
