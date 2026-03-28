@@ -4,22 +4,21 @@ import { useState, useRef, useEffect, Suspense } from "react";
 import { Search, LogIn, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/utils/supabase/client";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 function SearchInput() {
   const searchParams = useSearchParams();
-  const pathname = usePathname();
   const router = useRouter();
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams();
     if (val) {
       params.set("q", val);
+      router.replace(`/projects?${params.toString()}`);
     } else {
-      params.delete("q");
+      router.replace("/projects");
     }
-    router.replace(`${pathname}?${params.toString()}`);
   };
 
   return (
