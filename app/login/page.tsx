@@ -99,7 +99,7 @@ function LoginForm() {
               Password
             </label>
             <a
-              href="#"
+              href="/forgot-password"
               className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
             >
               Forgot password?
@@ -138,6 +138,11 @@ function LoginForm() {
           )}
         </button>
       </form>
+
+      <p className="text-center text-sm text-slate-500">
+        Need an account?{" "}
+        <span className="font-semibold text-slate-700">Contact the developer team to get registered.</span>
+      </p>
     </div>
   );
 }

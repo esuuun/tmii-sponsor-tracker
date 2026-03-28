@@ -12,7 +12,10 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const isPublicRoute =
     pathname === "/" ||
     pathname?.startsWith("/login") ||
-    pathname?.startsWith("/signup");
+    pathname?.startsWith("/signup") ||
+    pathname?.startsWith("/forgot-password") ||
+    pathname?.startsWith("/reset-password") ||
+    pathname?.startsWith("/auth/callback");
 
   if (isPublicRoute) {
     return <>{children}</>;
