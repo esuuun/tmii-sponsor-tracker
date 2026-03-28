@@ -200,12 +200,20 @@ function TaskList({
   deleteTodo,
   isAdmin,
   isLoading,
+  isError,
 }: any) {
   if (isLoading) {
     return (
       <div className="flex justify-center py-6 text-slate-400">
         <Loader2 className="w-6 h-6 animate-spin" />
       </div>
+    );
+  }
+  if (isError) {
+    return (
+      <p className="text-sm font-medium text-red-400 text-center py-6">
+        Failed to load tasks.
+      </p>
     );
   }
   if (todos.length === 0) {
@@ -336,7 +344,7 @@ export function ToDoList({
   const [editName, setEditName] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  const { data: todos = [], isLoading } = useTodos(projectId);
+  const { data: todos = [], isLoading, isError } = useTodos(projectId);
   const { createTodo, updateTodo, deleteTodo, reorderTodos } =
     useTodoMutations(projectId);
 
@@ -415,6 +423,7 @@ export function ToDoList({
     deleteTodo,
     isAdmin,
     isLoading,
+    isError,
   };
 
   // ---- Full-screen version (standalone todo page) ----

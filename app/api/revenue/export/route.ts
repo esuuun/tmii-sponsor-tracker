@@ -362,7 +362,8 @@ export async function GET(request: Request) {
 
   try {
   const { searchParams } = new URL(request.url);
-  const year = parseInt(searchParams.get("year") || String(new Date().getFullYear()));
+  const year = parseInt(searchParams.get("year") ?? String(new Date().getFullYear()), 10);
+  if (isNaN(year)) return NextResponse.json({ error: "Invalid year parameter." }, { status: 400 });
 
   const { data, error } = await supabase
     .from("revenue_monthly")

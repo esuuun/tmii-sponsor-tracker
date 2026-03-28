@@ -48,7 +48,8 @@ export async function GET(
   try {
 
   const { searchParams } = new URL(request.url);
-  const year = parseInt(searchParams.get("year") || String(new Date().getFullYear()));
+  const year = parseInt(searchParams.get("year") ?? String(new Date().getFullYear()), 10);
+  if (isNaN(year)) return NextResponse.json({ error: "Invalid year parameter." }, { status: 400 });
 
   // Fetch project name + all sales (all years for item list, year-specific for amounts)
   const [projectRes, allSalesRes, yearSalesRes] = await Promise.all([

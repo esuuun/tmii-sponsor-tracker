@@ -36,6 +36,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { year, month, rkap_target, carry_over_target, confirmed_amount, carry_over_confirmed_amount, best_estimate, carry_over_best_estimate } = body;
 
+    if (!year || typeof year !== "number") return NextResponse.json({ error: "year is required." }, { status: 400 });
+    if (!month || typeof month !== "number" || month < 1 || month > 12) return NextResponse.json({ error: "month must be 1–12." }, { status: 400 });
+
     const { data, error } = await supabase
       .from("revenue_monthly")
       .upsert(

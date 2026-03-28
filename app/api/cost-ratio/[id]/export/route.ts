@@ -77,7 +77,8 @@ export async function GET(
 
   try {
   const { searchParams } = new URL(request.url);
-  const year = parseInt(searchParams.get("year") || String(new Date().getFullYear()));
+  const year = parseInt(searchParams.get("year") ?? String(new Date().getFullYear()), 10);
+  if (isNaN(year)) return NextResponse.json({ error: "Invalid year parameter." }, { status: 400 });
 
   const [projectRes, itemsRes] = await Promise.all([
     supabase.from("projects").select("name").eq("id", projectId).single(),

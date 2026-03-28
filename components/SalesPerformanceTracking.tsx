@@ -6,6 +6,7 @@ import { useSales, useSalesMutations } from "@/hooks/useProjectDetails";
 import { useAuth } from "@/hooks/useAuth";
 import { formatIDR } from "@/utils/format";
 import Link from "next/link";
+import { toast } from "sonner";
 
 // ─── Formatted number input cell ─────────────────────────────────────────────
 
@@ -184,7 +185,10 @@ export function SalesPerformanceTracking({ projectId, isFullScreen = false, proj
     setIsExporting(true);
     try {
       const res = await fetch(`/api/projects/${projectId}/sales/export?year=${selectedYear}`);
-      if (!res.ok) throw new Error("Export failed");
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Export failed.");
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -194,6 +198,8 @@ export function SalesPerformanceTracking({ projectId, isFullScreen = false, proj
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Export failed.");
     } finally {
       setIsExporting(false);
     }

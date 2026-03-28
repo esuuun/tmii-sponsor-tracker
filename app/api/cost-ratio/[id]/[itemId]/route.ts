@@ -18,9 +18,16 @@ export async function PATCH(
 
   try {
     const body = await request.json();
+
+    const ALLOWED = ["category", "item_name", "detail", "cost_tmii", "value", "order_index"];
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    for (const field of ALLOWED) {
+      if (field in body) updates[field] = body[field];
+    }
+
     const { data, error } = await supabase
       .from("cost_ratio_items")
-      .update({ ...body, updated_at: new Date().toISOString() })
+      .update(updates)
       .eq("id", itemId)
       .select()
       .single();

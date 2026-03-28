@@ -1,8 +1,14 @@
+"use client";
+
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
+
 export default function SpreadsheetPage() {
+  const [isLoading, setIsLoading] = useState(true);
+
   const spreadsheetUrl =
     "https://docs.google.com/spreadsheets/d/1-XUxACw3BJjK0fOYcZJp4kS5Acf0OZC037d3iA2gnSU/edit?usp=sharing";
 
-  // Convert /edit URL to /htmlview or keep as-is for embedded editing
   const embedUrl = spreadsheetUrl.replace(
     "/edit?usp=sharing",
     "/edit?usp=sharing&embedded=true",
@@ -10,30 +16,19 @@ export default function SpreadsheetPage() {
 
   return (
     <div className="flex h-screen flex-col">
-      {/* <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Excel / Analysis Spreadsheet</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Edit the sponsorship analysis spreadsheet directly below.
-          </p>
-        </div>
-      </div> */}
-
-      <div className="flex-1 overflow-hidden border border-gray-200 shadow-sm">
-        {/* <a
-          href={spreadsheetUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-        >
-          Open in Google Sheets ↗
-        </a> */}
+      <div className="flex-1 overflow-hidden border border-gray-200 shadow-sm relative">
+        {isLoading && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-50 gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            <p className="text-sm font-medium text-slate-500">Loading spreadsheet...</p>
+          </div>
+        )}
         <iframe
           src={embedUrl}
           className="h-full w-full"
-          style={{ minHeight: "calc(100vh - 200px)" }}
-          frameBorder="0"
+          style={{ minHeight: "calc(100vh - 200px)", border: "none" }}
           allowFullScreen
+          onLoad={() => setIsLoading(false)}
         />
       </div>
     </div>
