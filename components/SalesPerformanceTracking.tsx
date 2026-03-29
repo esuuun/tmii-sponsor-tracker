@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Plus, Download, ChevronRight, ChevronLeft, Loader2, Edit2, Trash2, Check, X } from "lucide-react";
 import { useSales, useSalesMutations } from "@/hooks/useProjectDetails";
 import { useAuth } from "@/hooks/useAuth";
-import { formatIDR } from "@/utils/format";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -270,7 +269,7 @@ export function SalesPerformanceTracking({ projectId, isFullScreen = false, proj
           </div>
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Monthly Total</p>
-            <p className="text-3xl font-bold text-slate-900">{formatIDR(grandTotal)}</p>
+            <p className="text-3xl font-bold text-slate-900">{grandTotal.toLocaleString("en-US")}</p>
           </div>
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Best Month</p>
@@ -340,7 +339,7 @@ export function SalesPerformanceTracking({ projectId, isFullScreen = false, proj
                         </td>
                       );
                     })}
-                    <td className="px-6 py-4 font-bold text-slate-900 text-right sticky right-0 bg-white group-hover:bg-slate-50/50 shadow-[-1px_0_0_0_#f1f5f9] z-10 w-24">{formatIDR(total)}</td>
+                    <td className="px-6 py-4 font-bold text-slate-900 text-right sticky right-0 bg-white group-hover:bg-slate-50/50 shadow-[-1px_0_0_0_#f1f5f9] z-10 w-24">{total.toLocaleString("en-US")}</td>
                   </tr>
                 );
               })}
@@ -474,7 +473,7 @@ export function SalesPerformanceTracking({ projectId, isFullScreen = false, proj
                      );
                    })}
                    <td className="px-6 py-4 font-bold text-slate-900 text-right sticky right-0 bg-white group-hover:bg-slate-50/50 shadow-[-1px_0_0_0_#f1f5f9] z-10 w-24">
-                     {formatIDR(total)}
+                     {total.toLocaleString("en-US")}
                    </td>
                  </tr>
               )
