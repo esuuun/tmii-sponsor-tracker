@@ -17,7 +17,9 @@
       "Bash(grep -r \"redirect\\\\|protectedRoute\\\\|unauthorized\" /c/Users/esun/WebProject/tmii-sponsorship-tracker/app --include=*.ts --include=*.tsx)",
       "Bash(cat /c/Users/esun/WebProject/tmii-sponsorship-tracker/app/api/projects/[id]/todos/route.ts)",
       "Bash(find c:/Users/esun/WebProject/tmii-sponsorship-tracker/node_modules/@supabase/ssr -name proxy*)",
-      "Bash(ls c:/Users/esun/WebProject/tmii-sponsorship-tracker/app/\\\\\\(dashboard\\\\\\)/)"
+      "Bash(ls c:/Users/esun/WebProject/tmii-sponsorship-tracker/app/\\\\\\(dashboard\\\\\\)/)",
+      "Bash(ls c:/Users/esun/WebProject/tmii-sponsorship-tracker/app/\\\\\\(main\\\\\\)/)",
+      "Bash(ls \"c:/Users/esun/WebProject/tmii-sponsorship-tracker/app/\\(dashboard\\)/\")"
     ]
   }
 }

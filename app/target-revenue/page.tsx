@@ -133,16 +133,16 @@ function MonthBlock({ month, data, tab, onSave }: MonthBlockProps) {
   const confirm =
     tab === "rkap" ? data.confirmed_amount : data.carry_over_confirmed_amount;
   const gap = confirm - target;
-  const pct = target > 0 ? Math.round((confirm / target) * 100) : null;
+  const pct = target > 0 ? Math.round(((target - confirm) / target) * 100) : null;
 
   const gapColor =
     gap > 0 ? "text-emerald-600" : gap < 0 ? "text-red-500" : "text-slate-400";
   const pctColor =
     pct === null
       ? "text-slate-400"
-      : pct >= 100
+      : pct <= 0
         ? "text-emerald-600"
-        : pct >= 75
+        : pct <= 25
           ? "text-amber-500"
           : "text-red-500";
 
@@ -253,16 +253,16 @@ function SummaryBlock({
   const gap = totals.confirm - totals.target;
   const pct =
     totals.target > 0
-      ? Math.round((totals.confirm / totals.target) * 100)
+      ? Math.round(((totals.target - totals.confirm) / totals.target) * 100)
       : null;
   const gapColor =
     gap > 0 ? "text-emerald-600" : gap < 0 ? "text-red-500" : "text-slate-400";
   const pctColor =
     pct === null
       ? "text-slate-400"
-      : pct >= 100
+      : pct <= 0
         ? "text-emerald-600"
-        : pct >= 75
+        : pct <= 25
           ? "text-amber-500"
           : "text-red-500";
 
