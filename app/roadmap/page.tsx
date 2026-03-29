@@ -1,6 +1,7 @@
 "use client";
 
 import { Map, Clock } from "lucide-react";
+import Image from "next/image";
 
 const PLACEHOLDER_ITEMS = [
   {
@@ -75,9 +76,21 @@ export default function RoadmapPage() {
           </span>
         </div>
         <p className="text-slate-500 text-sm max-w-lg">
-          A high-level overview of what has been built and what's coming next.
+          A high-level overview of what has been built and what&apos;s coming next.
           Details are subject to change.
         </p>
+      </div>
+
+      {/* Roadmap image */}
+      <div className="w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+        <Image
+          src="/roadmap.png"
+          alt="Roadmap"
+          width={1920}
+          height={1080}
+          className="w-full h-auto"
+          priority
+        />
       </div>
 
       {/* Coming soon banner */}
