@@ -44,7 +44,14 @@ const C = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function pct(confirm: number, target: number): number | null {
-  return target > 0 ? Math.round((confirm / target) * 100) : null;
+  return target > 0 ? parseFloat(((target - confirm) / target * 100).toFixed(2)) : null;
+}
+
+function pctColor(p: number | null) {
+  if (p === null) return C.border;
+  if (p <= 0)  return C.green;
+  if (p <= 25) return C.amber;
+  return C.red;
 }
 
 function gap(confirm: number, target: number): number {
@@ -178,10 +185,10 @@ function writeSheet(
       cPct.fill = { type: "pattern", pattern: "solid", fgColor: C.white };
       cPct.font = {
         bold: true, size: 10,
-        color: p === null ? C.border : p >= 100 ? C.green : p >= 75 ? C.amber : C.red,
+        color: pctColor(p),
       };
       cPct.alignment = { horizontal: "center", vertical: "middle" };
-      cPct.numFmt = '0%';
+      cPct.numFmt = '0.00%';
       cPct.border = { top: { style: "thin", color: C.border }, left: { style: "thin", color: C.border }, bottom: { style: "thin", color: C.border }, right: { style: "thin", color: C.border } };
 
       // Gap

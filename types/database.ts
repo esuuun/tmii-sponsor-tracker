@@ -32,6 +32,7 @@ export type ProjectSales = {
   month: string;
   year: number;
   sales_amount: number;
+  price: number;
   created_at: string;
 };
 

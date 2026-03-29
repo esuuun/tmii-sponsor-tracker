@@ -41,7 +41,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   try {
     const body = await request.json();
-    const { item_name, month, sales_amount, year } = body;
+    const { item_name, month, sales_amount, year, price } = body;
 
     if (!item_name || typeof item_name !== "string" || item_name.trim() === "") {
       return NextResponse.json({ error: "item_name is required." }, { status: 400 });
@@ -57,6 +57,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         month: month || "January",
         year: salesYear,
         sales_amount: sales_amount || 0,
+        price: price || 0,
       }])
       .select()
       .single();
@@ -80,7 +81,18 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
   try {
     const body = await request.json();
-    const { id, item_name, month, sales_amount, year, old_item_name, new_item_name } = body;
+    const { id, item_name, month, sales_amount, year, old_item_name, new_item_name, update_price, price } = body;
+
+    // Bulk price update mode
+    if (update_price && item_name !== undefined && price !== undefined) {
+      const { error } = await supabase
+        .from("project_sales")
+        .update({ price })
+        .eq("project_id", params.id)
+        .eq("item_name", item_name);
+      if (error) throw error;
+      return NextResponse.json({ success: true });
+    }
 
     // Bulk rename mode
     if (old_item_name && new_item_name) {

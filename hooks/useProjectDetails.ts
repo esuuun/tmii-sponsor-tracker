@@ -151,13 +151,24 @@ export const useSalesMutations = (projectId: string, year?: number) => {
   };
 
   const createSalesItem = useMutation({
-    mutationFn: async ({ item_name, month, sales_amount }: { item_name: string; month?: string; sales_amount?: number }) => {
-      const res = await api.post(`/projects/${projectId}/sales`, { item_name, month, sales_amount, year: year || new Date().getFullYear() });
+    mutationFn: async ({ item_name, month, sales_amount, price }: { item_name: string; month?: string; sales_amount?: number; price?: number }) => {
+      const res = await api.post(`/projects/${projectId}/sales`, { item_name, month, sales_amount, price, year: year || new Date().getFullYear() });
       return res.data;
     },
     onSuccess: invalidate,
     onError: (error: Error) => {
       toast.error(`Failed to save data: ${error.message}`);
+    },
+  });
+
+  const updateItemPrice = useMutation({
+    mutationFn: async ({ item_name, price }: { item_name: string; price: number }) => {
+      const res = await api.patch(`/projects/${projectId}/sales`, { update_price: true, item_name, price });
+      return res.data;
+    },
+    onSuccess: invalidate,
+    onError: (error: Error) => {
+      toast.error(`Failed to update price: ${error.message}`);
     },
   });
 
@@ -205,7 +216,7 @@ export const useSalesMutations = (projectId: string, year?: number) => {
     },
   });
 
-  return { createSalesItem, updateSalesAmount, renameSalesItem, deleteSalesItem, deleteSingleSale };
+  return { createSalesItem, updateSalesAmount, renameSalesItem, deleteSalesItem, deleteSingleSale, updateItemPrice };
 };
 
 // --- Timelines ---

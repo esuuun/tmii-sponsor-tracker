@@ -53,20 +53,29 @@ function SalesAmountCell({ value, readOnly, onSave }: SalesAmountCellProps) {
 
 type PivotRow = {
   itemName: string;
+  price: number;
   _saleIds: Record<string, string>;
-  [month: string]: any; // either number or undefined
+  [month: string]: any;
 };
 
-function AddItemModal({ isOpen, onClose, onAdd, isPending }: { isOpen: boolean; onClose: () => void; onAdd: (name: string) => void, isPending: boolean }) {
+function AddItemModal({ isOpen, onClose, onAdd, isPending }: {
+  isOpen: boolean;
+  onClose: () => void;
+  onAdd: (name: string, price: number) => void;
+  isPending: boolean;
+}) {
   const [name, setName] = useState("");
+  const [priceDisplay, setPriceDisplay] = useState("");
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    onAdd(name.trim());
+    const price = parseInt(priceDisplay.replace(/[^0-9]/g, ""), 10) || 0;
+    onAdd(name.trim(), price);
     setName("");
+    setPriceDisplay("");
   };
 
   return (
@@ -81,18 +90,38 @@ function AddItemModal({ isOpen, onClose, onAdd, isPending }: { isOpen: boolean; 
             <X className="h-5 w-5" />
           </button>
         </div>
-        
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-6">
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-6">
           <div className="flex flex-col gap-2.5">
-            <label htmlFor="itemName" className="text-sm font-bold tracking-wide text-slate-700">Item Name <span className="text-red-500">*</span></label>
-            <input 
+            <label htmlFor="itemName" className="text-sm font-bold tracking-wide text-slate-700">
+              Item Name <span className="text-red-500">*</span>
+            </label>
+            <input
               id="itemName"
-              type="text" 
+              type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Mizone" 
+              placeholder="e.g. Mizone"
               required
               autoFocus
+              className="rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-semibold text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2.5">
+            <label htmlFor="itemPrice" className="text-sm font-bold tracking-wide text-slate-700">
+              Price per Item <span className="text-slate-400 font-normal">(Rp)</span>
+            </label>
+            <input
+              id="itemPrice"
+              type="text"
+              inputMode="numeric"
+              value={priceDisplay}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/[^0-9]/g, "");
+                setPriceDisplay(digits ? Number(digits).toLocaleString("en-US") : "");
+              }}
+              placeholder="e.g. 5,000,000"
               className="rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-semibold text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
             />
           </div>
@@ -115,57 +144,56 @@ export function SalesPerformanceTracking({ projectId, isFullScreen = false, proj
   const isAdmin = !!user;
 
   const fullMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  
+
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editItemValue, setEditItemValue] = useState("");
+  const [editingPrice, setEditingPrice] = useState<string | null>(null);
+  const [editPriceValue, setEditPriceValue] = useState("");
   const [isExporting, setIsExporting] = useState(false);
 
   const { data: sales = [], isLoading } = useSales(projectId, selectedYear);
-  const { data: allSales = [] } = useSales(projectId); // All years — for master item list
-  const { createSalesItem, updateSalesAmount, renameSalesItem, deleteSalesItem, deleteSingleSale } = useSalesMutations(projectId, selectedYear);
+  const { data: allSales = [] } = useSales(projectId);
+  const { createSalesItem, updateSalesAmount, renameSalesItem, deleteSalesItem, deleteSingleSale, updateItemPrice } = useSalesMutations(projectId, selectedYear);
 
-  // Master item list: all items that have EVER existed, sorted
   const allItemNames = Array.from(new Set(allSales.map(s => s.item_name))).sort();
 
-  // Pivot year-specific data into amounts by item + month
+  // Build price map from allSales (use latest non-zero price per item)
+  const allItemPrices: Record<string, number> = allSales.reduce((acc, sale) => {
+    if (sale.price && !acc[sale.item_name]) acc[sale.item_name] = sale.price;
+    return acc;
+  }, {} as Record<string, number>);
+
   const yearSalesMap: Record<string, PivotRow> = sales.reduce((acc, sale) => {
-    if (!acc[sale.item_name]) acc[sale.item_name] = { itemName: sale.item_name, _saleIds: {} };
+    if (!acc[sale.item_name]) acc[sale.item_name] = { itemName: sale.item_name, price: sale.price || 0, _saleIds: {} };
+    if (sale.price) acc[sale.item_name].price = sale.price;
     acc[sale.item_name][sale.month] = sale.sales_amount;
     acc[sale.item_name]._saleIds[sale.month] = sale.id;
     return acc;
   }, {} as Record<string, PivotRow>);
 
-  // Build displayData: always include every item, fill from yearSalesMap (or empty row if no data this year)
   const displayData: PivotRow[] = allItemNames.map(name =>
-    yearSalesMap[name] ?? { itemName: name, _saleIds: {} }
+    yearSalesMap[name] ?? { itemName: name, price: allItemPrices[name] || 0, _saleIds: {} }
   );
 
-  const items = allItemNames;
-
   const handleAmountChange = (itemName: string, month: string, val: string, id?: string) => {
-    // If user clears the input and there is an existing record (id exists), delete it from DB
     if (val === "" && id) {
       deleteSingleSale.mutate(id);
       return;
     }
-
     const amount = val === "" ? 0 : Number(val);
-    
-    // Optimistically UI behavior handled somewhat inherently by React Query, but we will dispatch mutation
     if (id) {
       updateSalesAmount.mutate({ id, item_name: itemName, month, sales_amount: amount });
     } else if (val !== "") {
-      // Only create a new record if the value is not empty
-      createSalesItem.mutate({ item_name: itemName, month, sales_amount: amount });
+      const price = allItemPrices[itemName] || 0;
+      createSalesItem.mutate({ item_name: itemName, month, sales_amount: amount, price });
     }
   };
 
-  const handleAddItem = (name: string) => {
-    // When adding a new item, we create a 0 entry for January so it appears in the DB.
+  const handleAddItem = (name: string, price: number) => {
     createSalesItem.mutate(
-      { item_name: name, month: "January", sales_amount: 0 },
+      { item_name: name, month: "January", sales_amount: 0, price },
       { onSuccess: () => setIsModalOpen(false) }
     );
   };
@@ -177,6 +205,14 @@ export function SalesPerformanceTracking({ projectId, isFullScreen = false, proj
     }
     renameSalesItem.mutate({ old_item_name: oldName, new_item_name: editItemValue }, {
       onSuccess: () => setEditingItem(null)
+    });
+  };
+
+  const handleSavePrice = (itemName: string) => {
+    const digits = editPriceValue.replace(/[^0-9]/g, "");
+    const price = digits ? parseInt(digits, 10) : 0;
+    updateItemPrice.mutate({ item_name: itemName, price }, {
+      onSuccess: () => setEditingPrice(null)
     });
   };
 
@@ -204,52 +240,142 @@ export function SalesPerformanceTracking({ projectId, isFullScreen = false, proj
     }
   };
 
-  // ---- Compute summary stats ----
+  // Revenue = qty × price
   const grandTotal = displayData.reduce((sum, row) => {
-    return sum + fullMonths.reduce((s, m) => s + (Number(row[m]) || 0), 0);
+    const price = row.price || 0;
+    return sum + fullMonths.reduce((s, m) => s + (Number(row[m]) || 0) * price, 0);
   }, 0);
+
   const bestMonth = fullMonths.reduce((best, m) => {
-    const total = displayData.reduce((s, row) => s + (Number(row[m]) || 0), 0);
-    const bestTotal = displayData.reduce((s, row) => s + (Number(row[best]) || 0), 0);
+    const total = displayData.reduce((s, row) => s + (Number(row[m]) || 0) * (row.price || 0), 0);
+    const bestTotal = displayData.reduce((s, row) => s + (Number(row[best]) || 0) * (row.price || 0), 0);
     return total > bestTotal ? m : best;
   }, fullMonths[0]);
+
+  // ─── Shared table body ────────────────────────────────────────────────────
+
+  const renderTableBody = () => (
+    <tbody className="divide-y divide-slate-100 bg-white">
+      {displayData.map((row, idx) => {
+        let rowRevenue = 0;
+        return (
+          <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
+            {/* Item name + price */}
+            <td className="px-6 py-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50/50 shadow-[1px_0_0_0_#f1f5f9] z-10 w-52">
+              {editingItem === row.itemName ? (
+                <div className="flex items-center gap-1">
+                  <input autoFocus type="text"
+                    className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm focus:border-blue-500 outline-none w-full min-w-[100px]"
+                    value={editItemValue}
+                    onChange={(e) => setEditItemValue(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveRename(row.itemName)}
+                  />
+                  <button onClick={() => handleSaveRename(row.itemName)} className="p-1 hover:bg-emerald-50 text-emerald-600 rounded"><Check className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => setEditingItem(null)} className="p-1 hover:bg-slate-100 text-slate-400 rounded"><X className="w-3.5 h-3.5" /></button>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between gap-1">
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate block max-w-[120px] text-sm" title={row.itemName}>{row.itemName}</span>
+                    {/* Inline price editor */}
+                    {editingPrice === row.itemName ? (
+                      <div className="flex items-center gap-1 mt-1">
+                        <input autoFocus type="text" inputMode="numeric"
+                          className="w-24 rounded border border-slate-300 px-1.5 py-0.5 text-xs focus:border-blue-500 outline-none font-normal"
+                          value={editPriceValue}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/[^0-9]/g, "");
+                            setEditPriceValue(digits ? Number(digits).toLocaleString("en-US") : "");
+                          }}
+                          onKeyDown={(e) => e.key === "Enter" && handleSavePrice(row.itemName)}
+                        />
+                        <button onClick={() => handleSavePrice(row.itemName)} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded"><Check className="w-3 h-3" /></button>
+                        <button onClick={() => setEditingPrice(null)} className="p-0.5 hover:bg-slate-100 text-slate-400 rounded"><X className="w-3 h-3" /></button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => isAdmin ? (setEditingPrice(row.itemName), setEditPriceValue(row.price > 0 ? row.price.toLocaleString("en-US") : "")) : undefined}
+                        className={`text-xs mt-0.5 font-normal text-left ${isAdmin ? "text-blue-500 hover:text-blue-700 cursor-pointer" : "text-slate-400 cursor-default"}`}
+                      >
+                        {row.price > 0 ? `Rp ${row.price.toLocaleString("en-US")}` : "Set price"}
+                      </button>
+                    )}
+                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      <button onClick={() => { setEditingItem(row.itemName); setEditItemValue(row.itemName); }} className="p-1 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded transition-colors" title="Rename"><Edit2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => deleteSalesItem.mutate(row.itemName)} className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </td>
+
+            {/* Monthly qty cells */}
+            {fullMonths.map(m => {
+              const qty = Number(row[m]) || 0;
+              rowRevenue += qty * (row.price || 0);
+              const saleId = row._saleIds[m];
+              return (
+                <td key={m} className="px-4 py-2">
+                  <SalesAmountCell
+                    value={row[m]}
+                    readOnly={!isAdmin}
+                    onSave={(digits) => handleAmountChange(row.itemName, m, digits, saleId)}
+                  />
+                </td>
+              );
+            })}
+
+            {/* Row revenue total */}
+            <td className="px-6 py-4 font-bold text-slate-900 text-right sticky right-0 bg-white group-hover:bg-slate-50/50 shadow-[-1px_0_0_0_#f1f5f9] z-10 w-28">
+              {row.price > 0 ? `Rp ${rowRevenue.toLocaleString("en-US")}` : <span className="text-slate-300">—</span>}
+            </td>
+          </tr>
+        );
+      })}
+      {displayData.length === 0 && !isLoading && (
+        <tr>
+          <td colSpan={15} className="px-6 py-16 text-center text-slate-400 font-medium tracking-wide">
+            No sales data yet. Click &quot;Add Item&quot; to start tracking.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  );
+
+  const yearPicker = (
+    <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm h-10">
+      <button onClick={() => setSelectedYear(y => y - 1)} className="px-3 h-full hover:bg-slate-50 text-slate-500 transition-colors border-r border-slate-200">
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+      <select
+        value={selectedYear}
+        onChange={e => setSelectedYear(Number(e.target.value))}
+        className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer px-4 h-full appearance-none text-center"
+      >
+        {Array.from({ length: 11 }, (_, i) => selectedYear - 5 + i).map(y => (
+          <option key={y} value={y}>{y}</option>
+        ))}
+      </select>
+      <button onClick={() => setSelectedYear(y => y + 1)} className="px-3 h-full hover:bg-slate-50 text-slate-500 transition-colors border-l border-slate-200">
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
 
   if (isFullScreen) {
     return (
       <div className="flex flex-col w-full h-full flex-1 overflow-hidden">
-        {/* Full-page Header */}
         <div className="flex items-start justify-between mb-6 shrink-0 gap-6 flex-wrap">
           <div>
             <h2 className="text-3xl font-bold text-slate-900">
-              {projectName ? `${projectName} Sales Matrix` : 'Sales Matrix'}
+              {projectName ? `${projectName} Sales Matrix` : "Sales Matrix"}
             </h2>
-            <p className="text-sm text-slate-500 mt-1 font-medium">Monthly sales volume per item across the fiscal year</p>
+            <p className="text-sm text-slate-500 mt-1 font-medium">Monthly quantity per item — total = qty × price</p>
           </div>
           <div className="flex items-center gap-3 shrink-0 flex-wrap">
-            {/* Year Picker */}
-            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm h-10">
-              <button
-                onClick={() => setSelectedYear(y => y - 1)}
-                className="px-3 h-full hover:bg-slate-50 text-slate-500 transition-colors border-r border-slate-200"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <select
-                value={selectedYear}
-                onChange={e => setSelectedYear(Number(e.target.value))}
-                className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer px-4 h-full appearance-none text-center"
-              >
-                {Array.from({ length: 11 }, (_, i) => selectedYear - 5 + i).map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-              <button
-                onClick={() => setSelectedYear(y => y + 1)}
-                className="px-3 h-full hover:bg-slate-50 text-slate-500 transition-colors border-l border-slate-200"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+            {yearPicker}
             {isAdmin && (
               <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-100 px-4 py-2.5 rounded-xl transition-colors border border-slate-200 shadow-sm">
                 <Plus className="h-4 w-4" /> Add Item
@@ -265,11 +391,11 @@ export function SalesPerformanceTracking({ projectId, isFullScreen = false, proj
         <div className="grid grid-cols-3 gap-4 mb-6 shrink-0">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Total Items</p>
-            <p className="text-3xl font-bold text-slate-900">{items.length}</p>
+            <p className="text-3xl font-bold text-slate-900">{displayData.length}</p>
           </div>
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Monthly Total</p>
-            <p className="text-3xl font-bold text-slate-900">{grandTotal.toLocaleString("en-US")}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Total Revenue</p>
+            <p className="text-3xl font-bold text-slate-900">Rp {grandTotal.toLocaleString("en-US")}</p>
           </div>
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Best Month</p>
@@ -277,7 +403,7 @@ export function SalesPerformanceTracking({ projectId, isFullScreen = false, proj
           </div>
         </div>
 
-        {/* Table Area */}
+        {/* Table */}
         <div className="flex-1 overflow-auto bg-white rounded-2xl ring-1 ring-slate-100 shadow-sm relative min-h-[200px]">
           {isLoading && (
             <div className="absolute inset-0 z-20 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center">
@@ -288,69 +414,12 @@ export function SalesPerformanceTracking({ projectId, isFullScreen = false, proj
           <table key={selectedYear} className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-slate-50/80 text-[11px] font-bold tracking-wider text-slate-500 uppercase sticky top-0 z-10">
               <tr>
-                <th scope="col" className="px-6 py-4 sticky left-0 bg-slate-50/95 shadow-[1px_0_0_0_#f1f5f9] z-20 w-48">Item Name</th>
-                {fullMonths.map(m => (
-                  <th key={m} scope="col" className="px-6 py-4">{m.slice(0, 3)}</th>
-                ))}
-                <th scope="col" className="px-6 py-4 text-right sticky right-0 bg-slate-50/95 shadow-[-1px_0_0_0_#f1f5f9] z-20">Total</th>
+                <th scope="col" className="px-6 py-4 sticky left-0 bg-slate-50/95 shadow-[1px_0_0_0_#f1f5f9] z-20 w-52">Item / Price</th>
+                {fullMonths.map(m => <th key={m} scope="col" className="px-6 py-4">{m.slice(0, 3)}</th>)}
+                <th scope="col" className="px-6 py-4 text-right sticky right-0 bg-slate-50/95 shadow-[-1px_0_0_0_#f1f5f9] z-20">Revenue</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {displayData.map((row, idx) => {
-                let total = 0;
-                return (
-                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-6 py-4 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50/50 shadow-[1px_0_0_0_#f1f5f9] z-10 w-48">
-                      {editingItem === row.itemName ? (
-                        <div className="flex items-center gap-1">
-                          <input autoFocus type="text"
-                            className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm focus:border-blue-500 outline-none w-full min-w-[100px]"
-                            value={editItemValue}
-                            onChange={(e) => setEditItemValue(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSaveRename(row.itemName)}
-                          />
-                          <button onClick={() => handleSaveRename(row.itemName)} className="p-1 hover:bg-emerald-50 text-emerald-600 rounded"><Check className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setEditingItem(null)} className="p-1 hover:bg-slate-100 text-slate-400 rounded"><X className="w-3.5 h-3.5" /></button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between">
-                          <span className="flex-1 truncate block max-w-[120px]" title={row.itemName}>{row.itemName}</span>
-                          {isAdmin && (
-                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity pl-1">
-                              <button onClick={() => { setEditingItem(row.itemName); setEditItemValue(row.itemName); }} className="p-1 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded transition-colors" title="Rename"><Edit2 className="w-3.5 h-3.5" /></button>
-                              <button onClick={() => deleteSalesItem.mutate(row.itemName)} className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                    {fullMonths.map(m => {
-                      const val = row[m];
-                      const amount = Number(val) || 0;
-                      total += amount;
-                      const saleId = row._saleIds[m];
-                      return (
-                        <td key={m} className="px-4 py-2">
-                          <SalesAmountCell
-                            value={val}
-                            readOnly={!isAdmin}
-                            onSave={(digits) => handleAmountChange(row.itemName, m, digits, saleId)}
-                          />
-                        </td>
-                      );
-                    })}
-                    <td className="px-6 py-4 font-bold text-slate-900 text-right sticky right-0 bg-white group-hover:bg-slate-50/50 shadow-[-1px_0_0_0_#f1f5f9] z-10 w-24">{total.toLocaleString("en-US")}</td>
-                  </tr>
-                );
-              })}
-              {displayData.length === 0 && !isLoading && (
-                <tr>
-                  <td colSpan={14} className="px-6 py-16 text-center text-slate-400 font-medium tracking-wide">
-                    No sales data yet. Click &quot;Add Item&quot; to start tracking.
-                  </td>
-                </tr>
-              )}
-            </tbody>
+            {renderTableBody()}
           </table>
         </div>
 
@@ -359,7 +428,7 @@ export function SalesPerformanceTracking({ projectId, isFullScreen = false, proj
     );
   }
 
-  // ---- Compact card version (embedded in project details) ----
+  // ---- Compact card version ----
   return (
     <div className="flex flex-col rounded-2xl bg-white shadow-sm ring-1 ring-slate-100 overflow-hidden relative h-[500px]">
       <div className="flex items-center justify-between p-6 pb-4">
@@ -368,10 +437,9 @@ export function SalesPerformanceTracking({ projectId, isFullScreen = false, proj
             <h3 className="text-xl font-bold text-slate-900 group-hover/link:text-blue-600 transition-colors">Project Sales Matrix</h3>
             <ChevronRight className="w-5 h-5 text-slate-400 group-hover/link:text-blue-600 group-hover/link:translate-x-1 transition-all" />
           </Link>
-          <p className="text-sm font-medium text-slate-500 mt-1.5">Sales volume per item across months in this project</p>
+          <p className="text-sm font-medium text-slate-500 mt-1.5">Qty per item across months — total = qty × price</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Compact Year Picker */}
           <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg overflow-hidden h-8 text-sm">
             <button onClick={() => setSelectedYear(y => y - 1)} className="px-2 h-full hover:bg-slate-100 text-slate-500 transition-colors border-r border-slate-200">
               <ChevronLeft className="w-3.5 h-3.5" />
@@ -402,99 +470,16 @@ export function SalesPerformanceTracking({ projectId, isFullScreen = false, proj
         <table key={selectedYear} className="w-full text-left text-sm whitespace-nowrap">
           <thead className="bg-slate-50/80 text-[11px] font-bold tracking-wider text-slate-500 uppercase">
             <tr>
-              <th scope="col" className="px-6 py-4 sticky left-0 bg-slate-50/95 shadow-[1px_0_0_0_#f1f5f9] z-10 w-48">Item Name</th>
-              {fullMonths.map(m => (
-                <th key={m} scope="col" className="px-6 py-4">{m.slice(0, 3)}</th>
-              ))}
-              <th scope="col" className="px-6 py-4 text-right sticky right-0 bg-slate-50/95 shadow-[-1px_0_0_0_#f1f5f9] z-10">Total</th>
+              <th scope="col" className="px-6 py-4 sticky left-0 bg-slate-50/95 shadow-[1px_0_0_0_#f1f5f9] z-10 w-52">Item / Price</th>
+              {fullMonths.map(m => <th key={m} scope="col" className="px-6 py-4">{m.slice(0, 3)}</th>)}
+              <th scope="col" className="px-6 py-4 text-right sticky right-0 bg-slate-50/95 shadow-[-1px_0_0_0_#f1f5f9] z-10">Revenue</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
-            {displayData.map((row, idx) => {
-              let total = 0;
-              return (
-                 <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
-                   <td className="px-6 py-4 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50/50 shadow-[1px_0_0_0_#f1f5f9] z-10 w-48">
-                      {editingItem === row.itemName ? (
-                        <div className="flex items-center gap-1">
-                          <input 
-                            autoFocus
-                            type="text" 
-                            className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm focus:border-blue-500 outline-none w-full min-w-[100px]"
-                            value={editItemValue}
-                            onChange={(e) => setEditItemValue(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSaveRename(row.itemName)}
-                          />
-                          <button onClick={() => handleSaveRename(row.itemName)} className="p-1 hover:bg-emerald-50 text-emerald-600 rounded">
-                            <Check className="w-3.5 h-3.5" />
-                          </button>
-                          <button onClick={() => setEditingItem(null)} className="p-1 hover:bg-slate-100 text-slate-400 rounded">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between">
-                          <span className="flex-1 truncate block max-w-[120px]" title={row.itemName}>{row.itemName}</span>
-                          {isAdmin && (
-                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity pl-1">
-                              <button 
-                                onClick={() => { setEditingItem(row.itemName); setEditItemValue(row.itemName); }}
-                                className="p-1 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded transition-colors"
-                                title="Rename Item"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button 
-                                onClick={() => deleteSalesItem.mutate(row.itemName)}
-                                className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
-                                title="Delete Item"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                   </td>
-                   
-                   {fullMonths.map(m => {
-                     const val = row[m];
-                     const amount = Number(val) || 0;
-                     total += amount;
-                     const saleId = row._saleIds[m];
-                     return (
-                       <td key={m} className="px-4 py-2">
-                         <SalesAmountCell
-                           value={val}
-                           readOnly={!isAdmin}
-                           onSave={(digits) => handleAmountChange(row.itemName, m, digits, saleId)}
-                         />
-                       </td>
-                     );
-                   })}
-                   <td className="px-6 py-4 font-bold text-slate-900 text-right sticky right-0 bg-white group-hover:bg-slate-50/50 shadow-[-1px_0_0_0_#f1f5f9] z-10 w-24">
-                     {total.toLocaleString("en-US")}
-                   </td>
-                 </tr>
-              )
-            })}
-            {displayData.length === 0 && !isLoading && (
-              <tr>
-                <td colSpan={14} className="px-6 py-8 text-center text-slate-400 font-medium tracking-wide">
-                  No sales data available. Click "Add Item" to start tracking your performance.
-                </td>
-              </tr>
-            )}
-          </tbody>
+          {renderTableBody()}
         </table>
       </div>
-      
-      <AddItemModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onAdd={handleAddItem}
-        isPending={createSalesItem.isPending}
-      />
+
+      <AddItemModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onAdd={handleAddItem} isPending={createSalesItem.isPending} />
     </div>
   );
 }
