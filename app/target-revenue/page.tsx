@@ -133,7 +133,7 @@ function MonthBlock({ month, data, tab, onSave }: MonthBlockProps) {
   const confirm =
     tab === "rkap" ? data.confirmed_amount : data.carry_over_confirmed_amount;
   const gap = confirm - target;
-  const pct = target > 0 ? Math.round(((target - confirm) / target) * 100) : null;
+  const pct = target > 0 ? parseFloat(((target - confirm) / target * 100).toFixed(2)) : null;
 
   const gapColor =
     gap > 0 ? "text-emerald-600" : gap < 0 ? "text-red-500" : "text-slate-400";
@@ -194,7 +194,7 @@ function MonthBlock({ month, data, tab, onSave }: MonthBlockProps) {
               className={`px-2 py-2 text-center text-xs font-bold ${pctColor}`}
             >
               {pct !== null ? (
-                `${pct}%`
+                `${pct.toFixed(2)}%`
               ) : (
                 <span className="text-slate-300">—</span>
               )}
@@ -253,7 +253,7 @@ function SummaryBlock({
   const gap = totals.confirm - totals.target;
   const pct =
     totals.target > 0
-      ? Math.round(((totals.target - totals.confirm) / totals.target) * 100)
+      ? parseFloat(((totals.target - totals.confirm) / totals.target * 100).toFixed(2))
       : null;
   const gapColor =
     gap > 0 ? "text-emerald-600" : gap < 0 ? "text-red-500" : "text-slate-400";
@@ -305,7 +305,7 @@ function SummaryBlock({
               className={`px-2 py-2 text-center text-xs font-bold ${pctColor}`}
             >
               {pct !== null ? (
-                `${pct}%`
+                `${pct.toFixed(2)}%`
               ) : (
                 <span className="text-slate-300">—</span>
               )}
