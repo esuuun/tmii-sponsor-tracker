@@ -44,13 +44,13 @@ const C = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function pct(confirm: number, target: number): number | null {
-  return target > 0 ? parseFloat(((target - confirm) / target * 100).toFixed(2)) : null;
+  return target > 0 ? parseFloat((confirm / target * 100).toFixed(2)) : null;
 }
 
 function pctColor(p: number | null) {
   if (p === null) return C.border;
-  if (p <= 0)  return C.green;
-  if (p <= 25) return C.amber;
+  if (p >= 100) return C.green;
+  if (p >= 75)  return C.amber;
   return C.red;
 }
 
@@ -273,7 +273,7 @@ function writeSheet(
       cP.fill = { type: "pattern", pattern: "solid", fgColor: C.white };
       cP.font = { bold: true, size: 10, color: p === null ? C.border : p >= 100 ? C.green : p >= 75 ? C.amber : C.red };
       cP.alignment = { horizontal: "center", vertical: "middle" };
-      cP.numFmt = '0%';
+      cP.numFmt = '0.00%';
       cP.border = { top: { style: "thin", color: C.border }, left: { style: "thin", color: C.border }, bottom: { style: "thin", color: C.border }, right: { style: "thin", color: C.border } };
 
       const cG = sheet.getCell(row, col + 3);
@@ -343,7 +343,7 @@ function writeSheet(
       cP.fill = { type: "pattern", pattern: "solid", fgColor: C.white };
       cP.font = { bold: true, size: 10, color: p === null ? C.border : p >= 100 ? C.green : p >= 75 ? C.amber : C.red };
       cP.alignment = { horizontal: "center", vertical: "middle" };
-      cP.numFmt = '0%';
+      cP.numFmt = '0.00%';
       cP.border = { top: { style: "thin", color: C.border }, left: { style: "thin", color: C.border }, bottom: { style: "thin", color: C.border }, right: { style: "thin", color: C.border } };
 
       const cG = sheet.getCell(row, col + 3);
