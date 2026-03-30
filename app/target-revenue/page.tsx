@@ -132,11 +132,12 @@ function MonthBlock({ month, data, tab, onSave }: MonthBlockProps) {
   const target = tab === "rkap" ? data.rkap_target : data.carry_over_target;
   const confirm =
     tab === "rkap" ? data.confirmed_amount : data.carry_over_confirmed_amount;
-  const gap = confirm - target;
-  const pct = target > 0 ? parseFloat(((target - confirm) / target * 100).toFixed(2)) : null;
+  const achieved = confirm >= target && target > 0;
+  const gap = achieved ? 0 : confirm - target;
+  const pct = target > 0 ? (achieved ? 0 : parseFloat(((target - confirm) / target * 100).toFixed(2))) : null;
 
   const gapColor =
-    gap > 0 ? "text-emerald-600" : gap < 0 ? "text-red-500" : "text-slate-400";
+    achieved ? "text-emerald-600" : gap > 0 ? "text-emerald-600" : gap < 0 ? "text-red-500" : "text-slate-400";
   const pctColor =
     pct === null
       ? "text-slate-400"
@@ -250,13 +251,14 @@ function SummaryBlock({
     { target: 0, confirm: 0, be: 0 },
   );
 
-  const gap = totals.confirm - totals.target;
+  const achieved = totals.confirm >= totals.target && totals.target > 0;
+  const gap = achieved ? 0 : totals.confirm - totals.target;
   const pct =
     totals.target > 0
-      ? parseFloat(((totals.target - totals.confirm) / totals.target * 100).toFixed(2))
+      ? (achieved ? 0 : parseFloat(((totals.target - totals.confirm) / totals.target * 100).toFixed(2)))
       : null;
   const gapColor =
-    gap > 0 ? "text-emerald-600" : gap < 0 ? "text-red-500" : "text-slate-400";
+    achieved ? "text-emerald-600" : gap > 0 ? "text-emerald-600" : gap < 0 ? "text-red-500" : "text-slate-400";
   const pctColor =
     pct === null
       ? "text-slate-400"
