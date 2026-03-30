@@ -54,7 +54,7 @@ function formatShort(value: number): string {
     return (
       sign +
       (Number.isInteger(v) ? v.toFixed(0) : parseFloat(v.toFixed(2))) +
-      "B"
+      "M"
     );
   }
   if (abs >= 1_000_000) {
@@ -62,7 +62,7 @@ function formatShort(value: number): string {
     return (
       sign +
       (Number.isInteger(v) ? v.toFixed(0) : parseFloat(v.toFixed(1))) +
-      "M"
+      "Jt"
     );
   }
   return sign + abs.toLocaleString("en-US");
