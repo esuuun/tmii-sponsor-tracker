@@ -11,6 +11,7 @@ import {
   HelpCircle,
   LogOut,
   Map,
+  GitBranch,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -22,6 +23,7 @@ const navigation = [
   { name: "Tracking", href: "/tracking", icon: Activity },
   { name: "Target Revenue", href: "/target-revenue", icon: CircleDollarSign },
   { name: "Cost Ratio", href: "/cost-ratio", icon: Coins },
+  { name: "Pipeline", href: "/pipeline", icon: GitBranch },
   { name: "Roadmap", href: "/roadmap", icon: Map },
   {
     name: "Excel / Analysis Spreadsheet",
@@ -69,7 +71,9 @@ export function Sidebar() {
             (pathname.startsWith("/tracking") && item.href === "/tracking") ||
             (pathname.startsWith("/target-revenue") &&
               item.href === "/target-revenue") ||
-            (pathname.startsWith("/cost-ratio") && item.href === "/cost-ratio");
+            (pathname.startsWith("/cost-ratio") &&
+              item.href === "/cost-ratio") ||
+            (pathname.startsWith("/pipeline") && item.href === "/pipeline");
           const Icon = item.icon;
 
           return (
